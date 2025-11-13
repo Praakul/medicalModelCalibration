@@ -20,7 +20,7 @@ def parse_args():
 
     # Model Configuration
     parser.add_argument('--model', default='resnet18', 
-                        choices=['resnet18', 'resnet34', 'custom_cnn'],
+                        choices=['resnet18', 'resnet34', 'resnet50'],
                         help='Base model architecture')
     parser.add_argument('--pretrained', action='store_true', default=True,
                         help='Use pre-trained weights')
@@ -47,6 +47,8 @@ def parse_args():
                         help='Gamma parameter for Focal Loss')
 
     # Calibration Methods
+    parsor.add_argument('--load_checkpoint', type=str, required=True,
+                        help='Path to the model_best.pth checkpoint to calibrate')
     parser.add_argument('--calibration', type=str, 
                         choices=['False', 'temperature', 'dirichlet'],
                         default='temperature',

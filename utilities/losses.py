@@ -35,7 +35,7 @@ class MDCA(torch.nn.Module):
 
     def forward(self , output, target):
         output = torch.softmax(output, dim=1)
-        loss = torch.tensor(0.0).cuda()
+        loss = torch.tensor(0.0,device=output.device)
         batch, classes = output.shape
         for c in range(classes):
             avg_count = (target == c).float().mean()
@@ -69,8 +69,8 @@ class CombinedLoss(nn.Module):
 loss_dict = {
     "cross_entropy": CrossEntropy,
     "focal_loss": FocalLoss,
-    "NLL+MDCA": lambda gamma, beta: CombinedLoss(loss="cross_entropy", beta= 5 , gamma = 2),  
-    "FL+MDCA": lambda gamma, beta: CombinedLoss(loss="focal", beta=5, gamma=2) 
+    "NLL+MDCA": lambda gamma, beta: CombinedLoss(loss="cross_entropy", beta= beta, gamma = gamma),  
+    "FL+MDCA": lambda gamma, beta: CombinedLoss(loss="focal", beta=beta, gamma=gamma) 
 }
 
 

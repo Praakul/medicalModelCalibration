@@ -7,12 +7,11 @@ import logging
 from time import localtime, strftime
 from matplotlib.pyplot import plot as plt
 
-
-from utilities.misc import mkdir_p 
+from utilities.misc import mkdir_p, save_metrics_json
 from utilities.__init__ import save_checkpoint, create_save_path, get_lr
 from argparsor import parse_args 
 from utilities.data_loader import get_data_loaders, get_dataset_info
-from models.resnet18 import ResNet18
+from models.build_model import build_model
 from utilities.losses import loss_dict
 from runners import train, test
 from utilities.metrics import CalibrationMetrics  # Updated to use CalibrationMetrics
@@ -63,10 +62,14 @@ if __name__ == "__main__":
     
     logging.info(f"Training on dataset: {args.dataset_name} , loss : {args.loss}")
     
-    model = ResNet18(num_classes=args.num_classes).cuda()
+    logging.info(f"Building model: {args.model}")
+    model = build(
+        model_name=args.model,
+        num_classes=args.num_classes,
+        droupout=args.dropout).cuda()
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.schedule_steps, gamma=args.lr_gamma)
-    criterion = loss_dict[args.loss](gamma=args.gamma, beta=args.beta, loss=args.loss) #for ONLY ORTHODOX  
+    criterion = loss_dict[args.loss](gamma=args.gamma, beta=args.beta) #for ONLY ORTHODOX  
     
     #criterion = loss_dict[args.loss](gamma=args.gamma, beta=args.beta) #for COMBINED
 
@@ -110,7 +113,7 @@ if __name__ == "__main__":
         logging.info(f"Val Metrics: {val_metrics}")
         logging.info(f"Test Metrics: {test_metrics}")
         
-        is_best = test_metrics['accuracy'] > best_acc
+        is_best = val_metrics['accuracy'] > best_acc
         best_acc = max(best_acc, test_metrics['accuracy'])
         
         save_checkpoint({
@@ -124,21 +127,28 @@ if __name__ == "__main__":
         
         if is_best:
             best_metrics = test_metrics
+            logging.info(f"*** New best model (Val Acc: {val_metrics['accuracy']:.4f})  ***")
+            logging.info(f"*** Corresponding Test Metrics: {test_metrics} ***")
     
     logging.info("Training completed...")
     logging.info("Best model metrics:")
     logging.info(best_metrics)
-    
+
+    metrics_save_path = os.path.join(model_save_pth, "Best_test_metrics.json")
+    save_metrics_json(best_metrics, metrics_save_path)
+        
     logging.info("Generating Reliability Diagram...")
 
+    best_model_path = os.path.join(model_save_pth, "model_best.pth")
+    checkpoint = torch.load(best_model_path)
+    model.load_state_dict(checkpoint['state_dict'])
+
+    outputs, labels = test(testloader, model, criterion)
+
     fig = calibration_metrics.plot_reliability_diagram(outputs, labels)
-    reliability_plot_path = os.path.join(model_save_pth, "reliability_diagram.png")
+    reliability_plot_path = os.path.join(model_save_pth, "reliability_diagram_best.png")
     
     fig.savefig(reliability_plot_path)
-    #plt.show()
-
-    # print(f"Unique labels in validation batch: {labels.unique()}")  # Should contain multiple classes
-    # print(f"Outputs shape: {outputs.shape}")  # Should be (batch_size, num_classes)
-    # print(f"Labels shape: {labels.shape}") 
+   
     
     

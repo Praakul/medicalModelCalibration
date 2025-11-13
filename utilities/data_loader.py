@@ -94,47 +94,33 @@ def get_data_loaders(base_path: str, batch_size: int) -> Tuple[List[DataLoader],
         train_path = os.path.join(data_path, dataset, 'train')
         test_path = os.path.join(data_path, dataset, 'test')  
         
-        # Create full training dataset
-        full_train_dataset = MedicalImageDataset(train_path, transform=train_transforms)
+        # Create two separate dataset for training and validation 
+        train_dataset_obj = MedicalImageDataset(train_path, transform=train_transforms)
+        val_dataset_obj = MedicalImageDataset(train_path,transform=eval_transforms)
         
-        # Split training into train and validation (90-10 split)
-        val_size = int(0.1 * len(full_train_dataset))
-        train_size = len(full_train_dataset) - val_size
-        
-        train_dataset, val_dataset = random_split(
-            full_train_dataset, 
-            [train_size, val_size],
-            generator=torch.Generator().manual_seed(42)  # For reproducibility
-        )
-        
-        # Create test dataset
-        test_dataset = MedicalImageDataset(test_path, transform=eval_transforms)
-        
-        # Use correct transforms for validation dataset
-        val_dataset.dataset.transforms = eval_transforms  # Apply eval_transforms to the validation set
+        test_dataset_obj = MedicalImageDataset(test_path, transform=eval_transforms)
 
-        
-        # Create DataLoaders
+        generator=torch.Generator().manual_seed(42)  # For reproducibility
+
+        val_size = int(0.1 * len(train_dataset_obj))
+        train_size = len(train_dataset_obj) - val_size
+
+        indices = torch.randperm(len(train_dataset_obj), generator = generator)
+
+        train_dataset = torch.utils.data.Subset(train_dataset, indices[:train_size])
+        val_dataset = torch.utils.data.Subset(val_dataset_obj, indices[train_size:])
+        test_dataset = test_dataset_obj
+
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
         val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
-        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
-        
+        test_loader = DataLoader(test_dataset,batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
+
         train_loaders.append(train_loader)
         val_loaders.append(val_loader)
         test_loaders.append(test_loader)
-        
-        #print(f"Train Size: {len(train_dataset)}, Validation Size: {len(val_dataset)}, Test Size: {len(test_dataset)}")
-       
-        # for dataset in [train_dataset, val_dataset, test_dataset]:
-        #    class_counts = [0] * 3
-        #    for _, label in dataset:
-        #          class_counts[label] += 1
-        #          print(f"Class distribution: {class_counts}")
-
 
     return train_loaders, val_loaders, test_loaders
    
-
 
 def get_dataset_info(base_path: str) -> List[dict]:
     """

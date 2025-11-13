@@ -1,63 +1,70 @@
 import torch
 import torch.nn as nn
-import torchvision.models as models
-#from torchvision.models import ResNet18_Weights
+from torchvision.models import resnet18, ResNet18_Weights, resnet34, ResNet34_Weights, resnet50, ResNet50_Weights
 
-
-
-
-class ResNet18(nn.Module):
-    def __init__(self, num_classes, dropout=0.5):
-        super(ResNet18, self).__init__()
-        # Load pre-trained ResNet18 with Default weights
-        self.resnet18 = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
+class CustomResNet(nn.Module):
+    def __init__(self, model_name: str, num_classes: int, dropout=0.5):
+        super(CustomResNet, self).__init__()
         
-        # Remove the original fully connected layer to customize the network
-        # This allows us to add our own classification head
-        self.resnet18.fc = nn.Identity()
-        
-        # Custom classification layers for feature refinement and final classification
-        # Designed to work with 64x64 input images after ResNet18 feature extraction
-        self.custom_layers = nn.Sequential(
-            # Reduce feature complexity while maintaining spatial information
-            nn.Conv2d(512, 256, kernel_size=3, stride=1, padding=1),  # Maintains 8x8 spatial dimensions
+        # 1. Load the correct base model and weights
+        if model_name == 'resnet18':
+            self.base_model = resnet18(weights=ResNet18_Weights.DEFAULT)
+            in_features = 512
+        elif model_name == 'resnet34':
+            self.base_model = resnet34(weights=ResNet34_Weights.DEFAULT)
+            in_features = 512
+        elif model_name == 'resnet50':
+            self.base_model = resnet50(weights=ResNet50_Weights.DEFAULT)
+            in_features = 2048
+        else:
+            raise ValueError(f"Unsupported model: {model_name}")
+            
+        # 2. Freeze the base model and remove its head
+        # (This is a different, more standard way than your original forward pass)
+        for param in self.base_model.parameters():
+            param.requires_grad = True # Keep them trainable
+            
+        self.base_model.fc = nn.Identity()
+
+        # 3. Create your custom head, now with a dynamic input layer
+        self.custom_head = nn.Sequential(
+            # --- DYNAMIC INPUT LAYER ---
+            nn.Conv2d(in_features, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.Dropout(dropout),  # Changed from Dropout2d to Dropout
+            nn.Dropout(dropout),
             
-            # Further feature reduction
-            nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1),  # Maintains 8x8 spatial dimensions
+            nn.Conv2d(256, 128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
             
-            # Final feature reduction before classification
-            nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),  # Maintains 8x8 spatial dimensions
+            nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout),
             
-            # Global average pooling to reduce spatial dimensions to 1x1
             nn.AdaptiveAvgPool2d((1, 1)),
-            
-            # Flatten the output for fully connected layer
             nn.Flatten(),
-            
-            # Final classification layer with specified number of classes
             nn.Linear(64, num_classes)
         )
-    
+
     def forward(self, x):
-        # Forward pass through ResNet18 feature extraction layers
-        x = self.resnet18.conv1(x)
-        x = self.resnet18.bn1(x)
-        x = self.resnet18.relu(x)
-        x = self.resnet18.maxpool(x)
-        x = self.resnet18.layer1(x)
-        x = self.resnet18.layer2(x)
-        x = self.resnet18.layer3(x)
-        x = self.resnet18.layer4(x)
+        # 1. Pass through all base model layers
+        # (This is simpler and less error-prone than calling layer1, layer2, etc.)
+        x = self.base_model.conv1(x)
+        x = self.base_model.bn1(x)
+        x = self.base_model.relu(x)
+        x = self.base_model.maxpool(x)
+        x = self.base_model.layer1(x)
+        x = self.base_model.layer2(x)
+        x = self.base_model.layer3(x)
+        x = self.base_model.layer4(x)
         
-        # Pass through custom classification layers
-        x = self.custom_layers(x)
+        # 2. Pass through the custom head
+        x = self.custom_head(x)
         return x
+
+def build_model(model_name: str, num_classes: int, dropout: float):
+    """Factory function to build the model"""
+    return CustomResNet(model_name, num_classes, dropout)

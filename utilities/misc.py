@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 
-__all__ = ['mkdir_p', 'AverageMeter', 'init_params']
+__all__ = ['mkdir_p', 'AverageMeter', 'init_params', 'save_metrics_json']
 
 def mkdir_p(path):
     """Creates a directory if it does not exist."""
@@ -55,3 +55,12 @@ def init_params(model):
             init.normal_(m.weight, std=0.01)
             if m.bias is not None:
                 init.zeros_(m.bias)
+
+def save_metrics_json(metrics_dict, filepath):
+    '''Saves a dictionary of metrics to a JSON file'''
+    try:
+        with open(filepath, 'w') as f:
+            json.dump(metrics_dict, f, indent=4)
+        print(f"Metrics saved to {filepath}")
+    except Exception as e:
+        print(f"Error saving metrics to {filepath}: {e}")    

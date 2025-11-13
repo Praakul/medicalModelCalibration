@@ -8,14 +8,28 @@ class CalibrationMetrics:
     def __init__(self, n_bins=15):
         self.n_bins = n_bins
 
-    def _compute_bin_boundaries(self, probabilities=None):
-        if probabilities is None or probabilities.numel() == 0:  # Handle empty input safely
-            return torch.linspace(0, 1, self.n_bins + 1, device="cuda")  # Default to cuda
-        probabilities_sort = torch.sort(probabilities)[0]  # Sort tensor
-        bin_n = len(probabilities) // self.n_bins
-        bin_boundaries = torch.tensor([probabilities_sort[i * bin_n] for i in range(self.n_bins)], device=probabilities.device)
-        return torch.cat([bin_boundaries, torch.tensor([1.0], device=probabilities.device)])
+    def _compute_static_bin_boundaries(self, device):
+            # Helper for static (equal-width) bins
+            return torch.linspace(0, 1, self.n_bins + 1, device=device)
 
+    def _compute_adaptive_bin_boundaries(self, confidences):
+        # Helper for adaptive (equal-mass) bins
+        if confidences.numel() == 0:
+            return torch.linspace(0, 1, self.n_bins + 1, device=confidences.device)
+
+        # --- FIX: Vectorized quantile computation ---
+        bin_n = confidences.numel() // self.n_bins
+        if bin_n == 0: # Handle small sample size
+            return torch.linspace(0, 1, self.n_bins + 1, device=confidences.device)
+
+        sorted_confidences, _ = torch.sort(confidences)
+
+        # Get indices for bin boundaries
+        indices = torch.arange(0, self.n_bins, device=confidences.device) * bin_n
+        bin_boundaries = sorted_confidences[indices]
+
+        # Add the final 1.0
+        return torch.cat([bin_boundaries, torch.tensor([1.0], device=confidences.device)])        
 
     def _get_probabilities(self, outputs, labels, logits=True):
         probabilities = F.softmax(outputs, dim=1) if logits else outputs
@@ -24,11 +38,15 @@ class CalibrationMetrics:
         return probabilities, confidences, predictions, accuracies
 
     def expected_calibration_error(self, outputs, labels, logits=True):
+        # This is the standard ECE with STATIC (equal-width) bins
         probabilities, confidences, predictions, accuracies = self._get_probabilities(outputs, labels, logits)
-        bin_boundaries = self._compute_bin_boundaries()
+
+        # --- FIX: Use helper and pass device ---
+        bin_boundaries = self._compute_static_bin_boundaries(device=outputs.device)
         bin_lowers, bin_uppers = bin_boundaries[:-1], bin_boundaries[1:]
+
         ece = torch.tensor(0.0, device=outputs.device)
-        
+
         for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
             in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
             prop_in_bin = in_bin.float().mean()
@@ -40,7 +58,7 @@ class CalibrationMetrics:
 
     def max_calibration_error(self, outputs, labels, logits=True):
         probabilities, confidences, predictions, accuracies = self._get_probabilities(outputs, labels, logits)
-        bin_boundaries = self._compute_bin_boundaries()
+        bin_boundaries = self._compute_static_bin_boundaries(device=outputs.device)
         bin_lowers, bin_uppers = bin_boundaries[:-1], bin_boundaries[1:]
         bin_scores = []
         
@@ -53,34 +71,24 @@ class CalibrationMetrics:
                 bin_scores.append(torch.abs(confidence_in_bin - accuracy_in_bin))
         return max(bin_scores).item() if bin_scores else 0.0
 
-    def static_calibration_error(self, outputs, labels, logits=True):
-        probabilities, confidences, predictions, accuracies = self._get_probabilities(outputs, labels, logits)
-        bin_boundaries = torch.linspace(0, 1, self.n_bins + 1, device=outputs.device)
-        bin_lowers, bin_uppers = bin_boundaries[:-1], bin_boundaries[1:]
-        sce = torch.tensor(0.0, device=outputs.device)
-        
-        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
-            in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
-            prop_in_bin = in_bin.float().mean()
-            if prop_in_bin > 0:
-                accuracy_in_bin = accuracies[in_bin].mean()
-                confidence_in_bin = confidences[in_bin].mean()
-                sce += torch.abs(confidence_in_bin - accuracy_in_bin)
-        return sce.item()
-
     def adaptive_calibration_error(self, outputs, labels, logits=True):
+        # This is ECE with ADAPTIVE (equal-mass) bins
         probabilities, confidences, predictions, accuracies = self._get_probabilities(outputs, labels, logits)
-        bin_boundaries = self._compute_bin_boundaries(confidences)
+
+        # --- FIX: Use adaptive bin helper ---
+        bin_boundaries = self._compute_adaptive_bin_boundaries(confidences)
         bin_lowers, bin_uppers = bin_boundaries[:-1], bin_boundaries[1:]
+
         ace = torch.tensor(0.0, device=outputs.device)
-        
+
         for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
             in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
             prop_in_bin = in_bin.float().mean()
             if prop_in_bin > 0:
                 accuracy_in_bin = accuracies[in_bin].mean()
                 confidence_in_bin = confidences[in_bin].mean()
-                ace += torch.abs(confidence_in_bin - accuracy_in_bin)
+                # --- FIX: Use the weighted average ---
+                ace += prop_in_bin * torch.abs(confidence_in_bin - accuracy_in_bin)
         return ace.item()
 
     def compute_auc(self, outputs, labels, logits=True):
@@ -115,7 +123,7 @@ class CalibrationMetrics:
     
     def plot_reliability_diagram(self, outputs, labels, logits=True):
         probabilities, confidences, predictions, accuracies = self._get_probabilities(outputs, labels, logits)
-        bin_boundaries = self._compute_bin_boundaries()
+        bin_boundaries = self._compute_static_bin_boundaries(device=outputs.device)
         bin_lowers, bin_uppers = bin_boundaries[:-1], bin_boundaries[1:]
         bin_accuracies = []
         bin_confidences = []
