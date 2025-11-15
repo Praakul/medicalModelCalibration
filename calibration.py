@@ -210,7 +210,7 @@ if __name__ == "__main__":
     dataset_names = [info['name'] for info in dataset_info]
     
     if args.dataset_name not in dataset_names:
-        raise ValueError(f"Dataset {args.D_name} not found. Available: {dataset_names}")
+        raise ValueError(f"Dataset {args.dataset_name} not found. Available: {dataset_names}")
     
     dataset_index = dataset_names.index(args.dataset_name)
     

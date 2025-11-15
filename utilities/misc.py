@@ -3,6 +3,7 @@ import errno
 import torch
 import torch.nn as nn
 import torch.nn.init as init
+import json
 
 __all__ = ['mkdir_p', 'AverageMeter', 'init_params', 'save_metrics_json']
 

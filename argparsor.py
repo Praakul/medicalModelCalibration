@@ -5,7 +5,7 @@ def parse_args():
 
     # Dataset Configuration
     parser.add_argument("--dataset", type=str, 
-                       default="A:/Model_Calibration/Code_Medical/",
+                       default="A:/Model_Calibration/Code_Medical/Data/",
                        help="Root path containing the data folder")
     parser.add_argument("--dataset_name", type=str, default="Brain_tumour_dataset", 
                     help="Name of the specific dataset to train on")
@@ -15,7 +15,7 @@ def parse_args():
     parser.add_argument('--seed', default=100, type=int,
                         help='Random seed for reproducibility')
     
-    parser.add_argument("--checkpoint", type=str, default="checkpoints", help="Path to save model checkpoints")
+    parser.add_argument("--checkpoint", type=str, default="newCheckpoints", help="Path to save model checkpoints")
 
 
     # Model Configuration
@@ -38,7 +38,7 @@ def parse_args():
                         help='Weight decay (L2 regularization)')
 
     # Loss Function Configuration
-    parser.add_argument('--loss', type=str, default='focal_loss', 
+    parser.add_argument('--loss', type=str, default='cross-entropy', 
                         choices=['cross_entropy', 'focal_loss', 'NLL+MDCA', 'FL+MDCA'],
                         help='Loss function to use during training')
     parser.add_argument('--beta', default=5, type=float,
@@ -47,7 +47,7 @@ def parse_args():
                         help='Gamma parameter for Focal Loss')
 
     # Calibration Methods
-    parsor.add_argument('--load_checkpoint', type=str, required=True,
+    parser.add_argument('--load_checkpoint', type=str, required=True,
                         help='Path to the model_best.pth checkpoint to calibrate')
     parser.add_argument('--calibration', type=str, 
                         choices=['False', 'temperature', 'dirichlet'],

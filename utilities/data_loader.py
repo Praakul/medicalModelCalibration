@@ -107,7 +107,7 @@ def get_data_loaders(base_path: str, batch_size: int) -> Tuple[List[DataLoader],
 
         indices = torch.randperm(len(train_dataset_obj), generator = generator)
 
-        train_dataset = torch.utils.data.Subset(train_dataset, indices[:train_size])
+        train_dataset = torch.utils.data.Subset(train_dataset_obj, indices[:train_size])
         val_dataset = torch.utils.data.Subset(val_dataset_obj, indices[train_size:])
         test_dataset = test_dataset_obj
 

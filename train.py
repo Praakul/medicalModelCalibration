@@ -63,10 +63,10 @@ if __name__ == "__main__":
     logging.info(f"Training on dataset: {args.dataset_name} , loss : {args.loss}")
     
     logging.info(f"Building model: {args.model}")
-    model = build(
+    model = build_model(
         model_name=args.model,
         num_classes=args.num_classes,
-        droupout=args.dropout).cuda()
+        dropout=args.dropout).cuda()
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.schedule_steps, gamma=args.lr_gamma)
     criterion = loss_dict[args.loss](gamma=args.gamma, beta=args.beta) #for ONLY ORTHODOX  
@@ -90,7 +90,6 @@ if __name__ == "__main__":
             "ece": calibration_metrics.expected_calibration_error(outputs, labels),
             "mce": calibration_metrics.max_calibration_error(outputs, labels),
             "ace": calibration_metrics.adaptive_calibration_error(outputs, labels),
-            "sce": calibration_metrics.static_calibration_error(outputs, labels),
             "auc": calibration_metrics.compute_auc(outputs, labels).item(),
             "f1_score": calibration_metrics.compute_f1(outputs, labels)
             
@@ -102,7 +101,6 @@ if __name__ == "__main__":
             "ece": calibration_metrics.expected_calibration_error(outputs, labels),
             "mce": calibration_metrics.max_calibration_error(outputs, labels),
             "ace": calibration_metrics.adaptive_calibration_error(outputs, labels),
-            "sce": calibration_metrics.static_calibration_error(outputs, labels),
             "auc": calibration_metrics.compute_auc(outputs, labels).item(),
             "f1_score": calibration_metrics.compute_f1(outputs, labels)
         }
@@ -114,7 +112,7 @@ if __name__ == "__main__":
         logging.info(f"Test Metrics: {test_metrics}")
         
         is_best = val_metrics['accuracy'] > best_acc
-        best_acc = max(best_acc, test_metrics['accuracy'])
+        best_acc = max(best_acc, val_metrics['accuracy'])
         
         save_checkpoint({
             'epoch': epoch + 1,
