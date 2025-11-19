@@ -3,7 +3,6 @@ import torch.nn as nn
 import logging
 from argparsor import parse_args as args
 
-# from https://github.com/torrvision/focal_calibration/blob/main/Losses/focal_loss.py
 class FocalLoss(nn.Module):
     def __init__(self, gamma= 2, **kwargs):
         super(FocalLoss, self).__init__()
@@ -65,7 +64,6 @@ class CombinedLoss(nn.Module):
         loss_cal = self.mdca_loss(logits, targets)
         return loss_cls + self.beta * loss_cal
 
-# Loss dictionary with only the required losses
 loss_dict = {
     "cross_entropy": CrossEntropy,
     "focal_loss": FocalLoss,

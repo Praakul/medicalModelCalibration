@@ -5,17 +5,15 @@ def parse_args():
 
     # Dataset Configuration
     parser.add_argument("--dataset", type=str, 
-                       default="A:/Model_Calibration/Code_Medical/Data/",
+                       default="/home/prakul/Desktop/Projects/MedicalModelCalibration/data/Breast_ultrasound_dataset",
                        help="Root path containing the data folder")
-    parser.add_argument("--dataset_name", type=str, default="Brain_tumour_dataset", 
-                    help="Name of the specific dataset to train on")
     parser.add_argument("--num_classes", type=int, default=4, help="Number of classes in dataset")
     parser.add_argument('--data_workers', default=4, type=int,
                         help='Number of data loading workers')
     parser.add_argument('--seed', default=100, type=int,
                         help='Random seed for reproducibility')
     
-    parser.add_argument("--checkpoint", type=str, default="newCheckpoints", help="Path to save model checkpoints")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints", help="Path to save model checkpoints")
 
 
     # Model Configuration
@@ -38,7 +36,7 @@ def parse_args():
                         help='Weight decay (L2 regularization)')
 
     # Loss Function Configuration
-    parser.add_argument('--loss', type=str, default='cross-entropy', 
+    parser.add_argument('--loss', type=str, default='cross_entropy', 
                         choices=['cross_entropy', 'focal_loss', 'NLL+MDCA', 'FL+MDCA'],
                         help='Loss function to use during training')
     parser.add_argument('--beta', default=5, type=float,
@@ -46,9 +44,10 @@ def parse_args():
     parser.add_argument('--gamma', default=2.0, type=float,
                         help='Gamma parameter for Focal Loss')
 
-    # Calibration Methods
-    parser.add_argument('--load_checkpoint', type=str, required=True,
+    # Calibration Configuration
+    parser.add_argument('--load_checkpoint', type=str, default=None,
                         help='Path to the model_best.pth checkpoint to calibrate')
+    
     parser.add_argument('--calibration', type=str, 
                         choices=['False', 'temperature', 'dirichlet'],
                         default='temperature',
@@ -56,8 +55,8 @@ def parse_args():
 
     # Evaluation Metrics
     parser.add_argument('--metrics', nargs='+', 
-                        default=['accuracy', 'f1', 'ece', 'sce', 'mce', 'auc', 'ace'],
-                        choices=['accuracy', 'f1', 'ece', 'sce', 'mce', 'auc', 'ace'],
+                        default=['accuracy', 'f1', 'ece', 'mce', 'auc', 'ace'],
+                        choices=['accuracy', 'f1', 'ece', 'mce', 'auc', 'ace'],
                         help='Metrics to compute during evaluation')
 
     # Computational Resources

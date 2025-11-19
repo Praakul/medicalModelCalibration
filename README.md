@@ -20,36 +20,6 @@ This pipeline is built to be flexible, allowing for easy switching between diffe
 
 - **Structured Logging**: Outputs all results to organized checkpoint folders, including detailed .log files, metric summaries in .json files, and publication-ready Reliability Diagrams.
 
-## Project Structure
-```
-.
-├── argparsor.py            # Manages all command-line arguments
-├── calibration.py          # Script for post-hoc calibration (Temp. & Dirichlet)
-├── checkpoints/            # Output directory for all trained models & logs
-│   ├── Brain_tumour_dataset/
-│   └── ...
-├── data/                   # Root directory for all datasets
-│   ├── Brain_tumour_dataset/
-│   │   ├── train/
-│   │   │   ├── class_0/
-│   │   │   └── class_1/
-│   │   └── test/
-│   │       ├── class_0/
-│   │       └── class_1/
-│   └── Breast_ultrasound_dataset/
-│       └── ...
-├── models/
-│   └── build_model.py      # Flexible builder for ResNet18/34/50
-├── runners.py              # Contains the core 'train' and 'test' epoch loops
-├── train.py                # Main script for training the model
-├── requirements.txt        # Project dependencies
-└── utilities/
-    ├── data_loader.py      # Loads, splits, and augments data
-    ├── eval.py             # (Helper for accuracy)
-    ├── losses.py           # Defines Focal, MDCA, and Combined losses
-    ├── metrics.py          # Defines ECE, ACE, MCE, AUC, F1
-    └── misc.py             # Helpers like AverageMeter and save_metrics_json
-```
 
 ## ⚙️ Installation
 

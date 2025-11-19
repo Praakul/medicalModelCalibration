@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import torch
 import numpy as np
 from typing import List, Tuple, Dict
@@ -124,25 +122,16 @@ def evaluate_model(model: torch.nn.Module,
     all_preds = torch.cat(all_preds, dim=0)
     all_targets = torch.cat(all_targets, dim=0)
     
-    # Calculate metrics
     acc = accuracy(all_preds, all_targets)[0].item()
-    
-    # Convert to probabilities for other metrics
     probs = torch.softmax(all_preds, dim=1)
-    
-    # Calculate F1 score (macro)
     preds = torch.argmax(probs, dim=1)
-    f1 = calculate_f1_score(preds.numpy(), all_targets.numpy(), num_classes)
-    
-    # AUC (one-vs-rest for multiclass)
+    f1 = calculate_f1_score(preds.numpy(), all_targets.numpy(), num_classes)  
     auc = calculate_auc(probs.numpy(), all_targets.numpy(), num_classes)
-    
     metrics = {
         'accuracy': acc,
         'f1_score': f1,
         'auc': auc
     }
-    
     return metrics        
         
 
