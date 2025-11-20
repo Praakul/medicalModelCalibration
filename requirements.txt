@@ -1,0 +1,14 @@
+# Core Machine Learning
+torch>=2.5.1
+torchvision>=0.20.1
+numpy>=2.2.0
+scikit-learn>=1.7.0
+
+# Data Processing & Visualization
+pandas>=2.2.0
+matplotlib>=3.10.0
+pillow>=11.0.0
+tqdm>=4.67.0
+
+# Utilities
+scipy>=1.15.0

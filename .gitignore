@@ -7,6 +7,7 @@ __pycache__/
 *.jpg
 *.png
 *.jpeg
+*.csv
 old_checkpoints/
 data/
 .vscode/
@@ -15,3 +16,4 @@ checkpoints/
 logParser.py
 compileResults.py
 autoCalibrator.py
+plotresults.py

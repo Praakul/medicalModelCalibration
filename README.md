@@ -1,125 +1,136 @@
-# Medical Image Classification and Calibration
+# Medical Model Calibration: Trustworthy AI for Medical Imaging
 
-This project provides a complete, end-to-end pipeline for training, evaluating, and calibrating deep learning models for medical image classification. The primary goal is to analyze and improve the reliability of model confidence scores, ensuring that a model's predicted confidence aligns with its actual accuracy.
+## Project Overview
 
-This pipeline is built to be flexible, allowing for easy switching between different models, datasets, loss functions, and calibration methods to rigorously test and produce trustworthy models.
+In high-stakes domains like medical imaging, high accuracy is not enough. A model must be **calibrated**: its predicted confidence (e.g., "99% sure") must reflect its actual probability of correctness. An overconfident AI that misdiagnoses a tumor is dangerous.
 
-## 🚀 Key Features
+This project implements a comprehensive, end-to-end pipeline to evaluate and improve the reliability of Deep Learning models. We conducted a rigorous comparative study across **180 experiments** (5 datasets, 3 architectures, 4 loss functions, 2 calibration techniques) to determine the most effective strategy for building trustworthy medical AI: **Train-Time Regularization** vs. **Post-Hoc Scaling**.
 
-- **Flexible Model Architecture**: Easily train and calibrate ResNet18, ResNet34, and ResNet50 using a unified model builder.
+## Key Findings & Analysis
 
-- **Multi-Dataset Support**: Natively handles multiple datasets. The dataloader is designed to find and manage datasets (e.g., Brain_tumour_dataset, Breast_ultrasound_dataset) from a common data/ directory.
+Our analysis reveals that **preventing miscalibration during training** is significantly more effective than trying to fix it post-hoc.
 
-- **Advanced Loss Functions**: Includes standard CrossEntropyLoss as well as advanced losses for overconfident models, such as FocalLoss and combined losses like NLL+MDCA and FL+MDCA.
+### 1. The Calibration Landscape
+![Calibration Landscape](plot_landscape.png)
+*Figure 1: The Accuracy-Reliability Landscape across 60 experimental runs. Models trained with MDCA regularization (Dark Blue) consistently occupy the "Ideal Region" (High Accuracy, Low Error), significantly outperforming post-hoc Dirichlet Scaling (Red).*
 
-- **Post-Hoc Calibration**: Implements state-of-the-art post-hoc calibration methods, including Temperature Scaling (with safety constraints) and Dirichlet Scaling.
+### 2. Consistency of Methods
+![Method Comparison](plot_method_comparison.png)
+*Figure 2: Distribution of Expected Calibration Error (ECE). Our training-based approach yields the lowest median error and highest consistency. Post-hoc Dirichlet scaling introduces massive variance, often degrading model reliability due to overfitting on small medical validation sets.*
 
-- **Comprehensive Reliability Metrics**: Calculates all standard classification and calibration metrics:
-  - **Classification**: Accuracy, F1-Score (Weighted), AUC (OvR Weighted)
-  - **Calibration**: ECE (Expected Calibration Error), ACE (Adaptive Calibration Error), and MCE (Max Calibration Error).
+### 3. Impact of Training Objectives
+![Loss Impact](plot_loss_impact.png)
+*Figure 3: Impact of loss functions on native model calibration. Integrating the MDCA regularizer (NLL+MDCA, FL+MDCA) significantly lowers the native calibration error compared to standard Cross-Entropy or Focal Loss.*
 
-- **Structured Logging**: Outputs all results to organized checkpoint folders, including detailed .log files, metric summaries in .json files, and publication-ready Reliability Diagrams.
+**Verdict:** The combination of **Focal Loss + MDCA** yielded the state-of-the-art result: **97.8% Accuracy** with minimal calibration error, removing the need for complex post-processing.
+
+## Key Features
+
+* **Advanced Loss Functions:** Implementations of **MDCA (Multi-Class Difference in Confidence and Accuracy)**, Focal Loss, and combined objectives.
+* **Post-Hoc Calibration Suite:** Integrated modules for **Temperature Scaling** (LBFGS optimized) and **Dirichlet Scaling** (Matrix Scaling).
+* **Publication-Ready Visualization:** Automated generation of Reliability Diagrams, ECE Landscapes, and Comparative Boxplots.
+* **Robust Data Pipeline:** Custom dataloaders designed to handle diverse medical imaging directory structures.
 
 
-## ⚙️ Installation
+## Installation
 
-1. Clone the repository:
+Clone the repository:
 ```bash
 git clone https://github.com/praakul/medicalModelCalibration
 cd medicalModelCalibration
 ```
 
-2. Create a virtual environment (Recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies: Your requirements.txt should include torch, torchvision, scikit-learn, matplotlib, numpy, and pillow.
+Install Dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. **Data Setup**: This project requires a specific data structure. Place all your datasets (e.g., Brain_tumour_dataset) inside the data/ directory. Each dataset must contain train and test folders, which in turn contain class-specific subfolders.
+(Core stack: PyTorch, Torchvision, Pandas, NumPy, Scikit-Learn, Seaborn)
 
-   See the Project Structure section for the required layout.
+## 💻 Usage
 
-## 🔬 How to Run
+### 1. Training (`train.py`)
 
-This project has a two-step workflow: (1) Training and (2) Calibration.
+Run this command to train the model with particular arguments.
 
-### Step 1: Training a Model
-
-Use the `train.py` script to train your model. The script will automatically use your validation set (10% split from train) to find the best model, save its weights, and log its performance on the unseen test set.
-
-**Example Command:**
-
-This command trains a ResNet-34 on the Brain Tumour dataset (which has 4 classes) using the Focal Loss + MDCA combination.
+**Example:**
 ```bash
 python train.py \
-    --model resnet34 \
-    --dataset "A:/Model_Calibration/Code_Medical/" \
-    --dataset_name "Brain_tumour_dataset" \
-    --num_classes 4 \
-    --loss "FL+MDCA" \
-    --beta 5.0 \
-    --gamma 2.0 \
-    --epochs 50 \
-    --batch_size 32 \
-    --learning_rate 0.001
+  --dataset_path "data/Brain_tumour_dataset" \
+  --model resnet50 \
+  --num_classes 4 \
+  --loss "FL+MDCA" \
+  --epochs 50
 ```
 
-**Key Training Arguments:**
+**Arguments:**
 
-- `--model`: The model to build (resnet18, resnet34, resnet50).
-- `--dataset`: The root path to your project folder (which contains the data/ directory).
-- `--dataset_name`: The specific dataset folder to use (e.g., Brain_tumour_dataset).
-- `--num_classes`: The number of classes in your specific dataset.
-- `--loss`: The loss function to use (cross_entropy, focal_loss, NLL+MDCA, FL+MDCA).
-- `--epochs`: Total number of training epochs.
-- `--beta` / `--gamma`: Parameters for the advanced loss functions.
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--dataset_path` | str | Required | Path to the dataset root directory. |
+| `--model` | str | `resnet18` | Architecture: `resnet18`, `resnet34`, `resnet50`. |
+| `--num_classes` | int | Required | Number of classes in the dataset. |
+| `--loss` | str | `cross_entropy` | Loss function: `cross_entropy`, `focal_loss`, `NLL+MDCA`, `FL+MDCA`. |
+| `--epochs` | int | `50` | Number of training epochs. |
+| `--batch_size` | int | `32` | Training batch size. |
+| `--learning_rate` | float | `0.001` | Initial learning rate. |
+| `--beta` | float | `5.0` | Weight for MDCA term (if using `+MDCA`). |
+| `--gamma` | float | `2.0` | Gamma parameter for Focal Loss. |
 
-### Step 2: Applying Post-Hoc Calibration
+### 2. Calibration (`calibration.py`)
 
-After training, use the `calibration.py` script to take your best-saved model and apply a post-hoc calibration method. This script will fit the calibrator on the validation set and then evaluate its final performance on the test set.
+Use this script to apply post-hoc calibration (Temperature Scaling or Dirichlet Scaling) to a trained model checkpoint.
 
-**Example Command:**
-
-This command takes the best model from Step 1 (you must provide the path) and applies Temperature Scaling.
+**Example:**
 ```bash
 python calibration.py \
-    --load_checkpoint "checkpoints/Brain_tumour_dataset/2025-11-15_19-30-45/model_best.pth" \
-    --model resnet34 \
-    --dataset "A:/Model_Calibration/Code_Medical/" \
-    --dataset_name "Brain_tumour_dataset" \
-    --num_classes 4 \
-    --calibration temperature
+  --checkpoint_path "checkpoints/Brain_tumour_dataset/.../model_best.pth" \
+  --dataset_path "data/Brain_tumour_dataset" \
+  --model_name resnet50 \
+  --num_classes 4 \
+  --method temperature
 ```
 
-**Key Calibration Arguments:**
+**Arguments:**
 
-- `--load_checkpoint`: (Required) Path to the model_best.pth file saved during training.
-- `--calibration`: The method to apply (temperature or dirichlet).
-- `--model`, `--dataset_name`, `--num_classes`: These must match the arguments used to train the checkpoint.
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--checkpoint_path` | str | Required | Path to the `.pth` file saved by `train.py`. |
+| `--dataset_path` | str | Required | Path to the dataset used for training. |
+| `--model_name` | str | Required | Architecture used in the checkpoint (`resnet18`, etc.). |
+| `--num_classes` | int | Required | Number of classes in the dataset. |
+| `--method` | str | Required | Method to apply: `temperature` or `dirichlet`. |
+| `--Mu` | float | `0.0` | Regularization parameter (for Dirichlet scaling). |
 
-## 📊 Understanding the Output
+## 🧬 Datasets
 
-All results are saved in the `checkpoints/` directory, organized by dataset and timestamp.
+We utilized 5 diverse medical imaging datasets to ensure robust evaluation.
 
-### Training Output
+| Dataset | Classes | Train Imgs | Test Imgs | Class Labels |
+|---------|---------|------------|-----------|--------------|
+| Breast Ultrasound | 3 | 623 | 157 | Benign, Malignant, Normal |
+| Skills Evaluation | 3 | 1,010 | 206 | Average, Good, Poor |
+| Brain Tumour | 4 | 5,712 | 1,311 | Glioma, Meningioma, No Tumor, Pituitary |
+| Chest X-Ray | 2 | 5,216 | 624 | Normal, Pneumonia |
+| COVID-19 | 3 | 9,518 | 2,580 | COVID, Normal, Viral Pneumonia |
 
-**Location:** `checkpoints/<dataset_name>/<timestamp>/`
 
-- `model_best.pth`: The model weights (state_dict) from the epoch with the highest validation accuracy.
-- `train.log`: A complete log of the training process, epoch by epoch.
-- `best_test_metrics.json`: A JSON file containing the test set metrics (ECE, ACE, F1, etc.) for the uncalibrated best model.
-- `reliability_diagram_best.png`: The reliability diagram of the uncalibrated best model.
+## Metrics Implemented
 
-### Calibration Output
+We track a comprehensive suite of metrics for every run:
 
-**Location:** `checkpoints/<dataset_name>/posthoc_<model>_<timestamp>/`
+**Performance:** Accuracy, Weighted F1-Score, Weighted AUC (One-vs-Rest).
 
-- `model.pth`: The calibrated model's state_dict. This now includes the calibration layer (the learned T parameter or the Dirichlet scaling_layer).
-- `calibration.log`: A log of the calibration process.
-- `calibrated_test_metrics.json`: A JSON file with the final metrics (ECE, ACE, etc.) of the fully calibrated model.
-- `reliability_diagram.png`: The new reliability diagram, showing the improved calibration.
+**Reliability:**
+
+* **ECE (Expected Calibration Error):** The weighted average gap between confidence and accuracy.
+* **MCE (Maximum Calibration Error):** The worst-case gap in any single bin.
+* **Reliability Diagrams:** Visual plots of Confidence vs. Accuracy.
+
+---
+
+
+## Acknowledgement
+
+This is an attempt to extend and validate the work the work presented in the paper *A Stitch in Time Saves Nine: A Train-Time Regularizing Loss for Improved Neural Network Calibration*
+Ramya Hebbalaguppe, Jatin Prakash, Neelabh Madan, Chetan Arora; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022, pp. 16081-16090
