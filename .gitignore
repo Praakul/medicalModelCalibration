@@ -17,3 +17,7 @@ logParser.py
 compileResults.py
 autoCalibrator.py
 plotresults.py
+
+!plot_landscape.png
+!plot_loss_impact.png
+!plot_method_comparison.png
