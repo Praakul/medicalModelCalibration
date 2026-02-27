@@ -1,11 +1,11 @@
 import os
 import torch
+from pathlib import Path
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader, random_split
 from PIL import Image
 from typing import List, Tuple
 from argparsor import parse_args
-
 
 class MedicalImageDataset(Dataset):
     def __init__(self, dataset_path: str, transform=None):
@@ -19,6 +19,7 @@ class MedicalImageDataset(Dataset):
         self.dataset_path = dataset_path
         self.images = []
         self.labels = []
+        valid_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.gif'}
 
         class_dirs = sorted([d for d in os.listdir(dataset_path) 
                             if os.path.isdir(os.path.join(dataset_path, d))])
@@ -32,6 +33,8 @@ class MedicalImageDataset(Dataset):
                 
             for img_name in img_list:
                 img_path = os.path.join(class_path, img_name)
+                if not Path(img_path).suffix.lower() in valid_extensions:
+                    continue
                 self.images.append(img_path)
                 self.labels.append(label)
         

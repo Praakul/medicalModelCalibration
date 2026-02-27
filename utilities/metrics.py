@@ -62,7 +62,9 @@ class CalibrationMetrics:
                 accuracy_in_bin = accuracies[in_bin].mean()
                 confidence_in_bin = confidences[in_bin].mean()
                 bin_scores.append(torch.abs(confidence_in_bin - accuracy_in_bin))
-        return max(bin_scores).item() if bin_scores else 0.0
+        if not bin_scores:
+            return 0.0
+        return torch.stack(bin_scores).max().item()
 
     def adaptive_calibration_error(self, outputs, labels, logits=True):
         probabilities, confidences, predictions, accuracies = self._get_probabilities(outputs, labels, logits)

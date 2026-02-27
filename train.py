@@ -3,7 +3,6 @@ import torch
 import torch.optim as optim
 import logging
 from time import localtime, strftime
-from matplotlib.pyplot import plot as plt
 from utilities.misc import mkdir_p, save_metrics_json
 from utilities.__init__ import save_checkpoint, create_save_path, get_lr
 from argparsor import parse_args 
@@ -11,7 +10,7 @@ from utilities.data_loader import get_data_loaders, get_dataset_info
 from models.resnet import build_model
 from utilities.losses import loss_dict
 from runners import train, test
-from utilities.metrics import CalibrationMetrics  
+from utilities.metrics import CalibrationMetrics
 from datetime import datetime
 
 current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -25,7 +24,7 @@ if __name__ == "__main__":
     dataset_name = dataset_info['name'] 
     train_loaders, val_loaders, test_loaders = get_data_loaders(args.dataset, args.batch_size)
 
-    model_save_pth = f"{args.checkpoint}/{args.dataset}/{current_time}"
+    model_save_pth = f"{args.checkpoint}/{args.dataset.strip("/")[-1]}/{current_time}"
     mkdir_p(model_save_pth)
     
     log_file = os.path.join(model_save_pth, "train.log")
@@ -97,7 +96,7 @@ if __name__ == "__main__":
         
         scheduler.step()
         
-        logging.info(f"Epoch {epoch+1}: Train Loss: {train_loss:.4f}, Train_acc: {train_acc:.4f}, Val Loss: {val_metrics['ece']:.4f}, Test Acc: {test_metrics['accuracy']:.4f}")
+        logging.info(f"Epoch {epoch+1}: Train Loss: {train_loss:.4f}, Train_acc: {train_acc:.4f}, Val ECE: {val_metrics['ece']:.4f}, Test Acc: {test_metrics['accuracy']:.4f}")
         logging.info(f"Val Metrics: {val_metrics}")
         logging.info(f"Test Metrics: {test_metrics}")
         

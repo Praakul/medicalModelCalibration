@@ -5,7 +5,7 @@ def parse_args():
 
     # Dataset Configuration
     parser.add_argument("--dataset", type=str, 
-                       default="/home/prakul/Desktop/Projects/MedicalModelCalibration/data/Breast_ultrasound_dataset",
+                       default="data/Breast_ultrasound_dataset",
                        help="Root path containing the data folder")
     parser.add_argument("--num_classes", type=int, default=4, help="Number of classes in dataset")
     parser.add_argument('--data_workers', default=4, type=int,

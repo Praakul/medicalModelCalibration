@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import logging
-from argparsor import parse_args as args
 
 class FocalLoss(nn.Module):
     def __init__(self, gamma= 2, **kwargs):
@@ -56,7 +55,6 @@ class CombinedLoss(nn.Module):
             self.primary_loss = FocalLoss()
         else:
             raise ValueError(f"Unsupported Primary loss: {loss}")
-        print(loss)
         self.mdca_loss = MDCA()
 
     def forward(self, logits, targets):
