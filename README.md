@@ -128,9 +128,3 @@ We track a comprehensive suite of metrics for every run:
 * **Reliability Diagrams:** Visual plots of Confidence vs. Accuracy.
 
 ---
-
-
-## Acknowledgement
-
-This is an attempt to extend and validate the work the work presented in the paper *A Stitch in Time Saves Nine: A Train-Time Regularizing Loss for Improved Neural Network Calibration*
-Ramya Hebbalaguppe, Jatin Prakash, Neelabh Madan, Chetan Arora; Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2022, pp. 16081-16090
